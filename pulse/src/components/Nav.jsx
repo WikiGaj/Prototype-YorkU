@@ -10,6 +10,7 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import HistoryIcon from '@mui/icons-material/History';
 import InsightsIcon from '@mui/icons-material/Insights';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import PulseLine from './PulseLine';
 import { tokens } from '../theme';
 import brand from '../brand';
@@ -68,8 +69,9 @@ export default function Nav({ view, onChangeView }) {
           >
             <Tab icon={<DashboardIcon />} iconPosition="start" label="Dashboard" value={0} id="nav-dashboard" />
             <Tab icon={<AddCircleOutlineIcon />} iconPosition="start" label="Log" value={1} id="nav-log" />
-            <Tab icon={<HistoryIcon />} iconPosition="start" label="History" value={2} id="nav-history" />
-            <Tab icon={<InsightsIcon />} iconPosition="start" label="Summary" value={3} id="nav-summary" />
+            <Tab icon={<FitnessCenterIcon />} iconPosition="start" label="Crowd" value={2} id="nav-crowd" />
+            <Tab icon={<HistoryIcon />} iconPosition="start" label="History" value={3} id="nav-history" />
+            <Tab icon={<InsightsIcon />} iconPosition="start" label="Summary" value={4} id="nav-summary" />
           </Tabs>
         )}
       </Box>
@@ -88,8 +90,9 @@ export default function Nav({ view, onChangeView }) {
             zIndex: 1100,
           }}
         >
-          <BottomNavigationAction label="Dashboard" icon={<DashboardIcon />} id="nav-mobile-dashboard" />
+          <BottomNavigationAction label="Home" icon={<DashboardIcon />} id="nav-mobile-dashboard" />
           <BottomNavigationAction label="Log" icon={<AddCircleOutlineIcon />} id="nav-mobile-log" />
+          <BottomNavigationAction label="Crowd" icon={<FitnessCenterIcon />} id="nav-mobile-crowd" />
           <BottomNavigationAction label="History" icon={<HistoryIcon />} id="nav-mobile-history" />
           <BottomNavigationAction label="Summary" icon={<InsightsIcon />} id="nav-mobile-summary" />
         </BottomNavigation>
