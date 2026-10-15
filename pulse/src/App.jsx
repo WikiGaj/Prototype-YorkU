@@ -43,6 +43,11 @@ export default function App() {
     setEditEntry(null);
   }, [add, update]);
 
+  // Navigate to the full crowd forecast view
+  const handleOpenCrowd = useCallback(() => {
+    setView(2);
+  }, []);
+
   // Navigate to Log view with a specific type pre-selected
   const handleQuickAdd = useCallback((type) => {
     setEditEntry(null);
@@ -106,6 +111,7 @@ export default function App() {
             entries={entries}
             onQuickAdd={handleQuickAdd}
             onQuickWater={handleQuickWater}
+            onOpenCrowd={handleOpenCrowd}
           />
         )}
         {view === 1 && (

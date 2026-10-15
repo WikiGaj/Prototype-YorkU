@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import MetricCard from './MetricCard';
+import CrowdWidget from './CrowdWidget';
 
 const METRIC_TYPES = ['food', 'steps', 'water', 'sleep'];
 
@@ -12,7 +13,7 @@ const METRIC_TYPES = ['food', 'steps', 'water', 'sleep'];
  * Dashboard screen: four metric cards showing today's totals with mini trends,
  * plus quick-add shortcuts.
  */
-export default function Dashboard({ entries, onQuickAdd, onQuickWater }) {
+export default function Dashboard({ entries, onQuickAdd, onQuickWater, onOpenCrowd }) {
   // Today's date string for filtering
   const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
 
@@ -72,6 +73,9 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater }) {
           +250 ml
         </Button>
       </Box>
+
+      {/* Gym crowd widget — tap to open full forecast */}
+      <CrowdWidget onOpen={onOpenCrowd} />
 
       {/* Metric cards in a 2×2 grid */}
       <Grid container spacing={2}>
