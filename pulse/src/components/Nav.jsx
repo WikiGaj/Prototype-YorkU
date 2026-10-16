@@ -68,8 +68,8 @@ export default function Nav({ view, onChangeView }) {
             aria-label="Main navigation"
           >
             <Tab icon={<DashboardIcon />} iconPosition="start" label="Dashboard" value={0} id="nav-dashboard" />
-            <Tab icon={<AddCircleOutlineIcon />} iconPosition="start" label="Log" value={1} id="nav-log" />
-            <Tab icon={<FitnessCenterIcon />} iconPosition="start" label="Crowd" value={2} id="nav-crowd" />
+            <Tab icon={<FitnessCenterIcon />} iconPosition="start" label="Crowd" value={1} id="nav-crowd" />
+            <Tab icon={<AddCircleOutlineIcon />} iconPosition="start" label="Log" value={2} id="nav-log" />
             <Tab icon={<HistoryIcon />} iconPosition="start" label="History" value={3} id="nav-history" />
             <Tab icon={<InsightsIcon />} iconPosition="start" label="Summary" value={4} id="nav-summary" />
           </Tabs>
@@ -91,8 +91,8 @@ export default function Nav({ view, onChangeView }) {
           }}
         >
           <BottomNavigationAction label="Home" icon={<DashboardIcon />} id="nav-mobile-dashboard" />
-          <BottomNavigationAction label="Log" icon={<AddCircleOutlineIcon />} id="nav-mobile-log" />
           <BottomNavigationAction label="Crowd" icon={<FitnessCenterIcon />} id="nav-mobile-crowd" />
+          <BottomNavigationAction label="Log" icon={<AddCircleOutlineIcon />} id="nav-mobile-log" />
           <BottomNavigationAction label="History" icon={<HistoryIcon />} id="nav-mobile-history" />
           <BottomNavigationAction label="Summary" icon={<InsightsIcon />} id="nav-mobile-summary" />
         </BottomNavigation>

@@ -27,7 +27,7 @@ import brand from './brand';
  */
 export default function App() {
   const { entries, add, update, remove, clearAll, loadSampleData } = useEntries();
-  const [view, setView] = useState(0); // 0=Dashboard, 1=Log, 2=Crowd, 3=History, 4=Summary
+  const [view, setView] = useState(0); // 0=Dashboard, 1=Crowd, 2=Log, 3=History, 4=Summary
   const [editEntry, setEditEntry] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -45,19 +45,19 @@ export default function App() {
 
   // Navigate to the full crowd forecast view
   const handleOpenCrowd = useCallback(() => {
-    setView(2);
+    setView(1);
   }, []);
 
   // Navigate to Log view with a specific type pre-selected
   const handleQuickAdd = useCallback((type) => {
     setEditEntry(null);
-    setView(1);
+    setView(2);
   }, []);
 
   // Edit entry: switch to Log view with the entry pre-filled
   const handleEdit = useCallback((entry) => {
     setEditEntry(entry);
-    setView(1);
+    setView(2);
   }, []);
 
   // Cancel editing
@@ -102,14 +102,14 @@ export default function App() {
             onOpenCrowd={handleOpenCrowd}
           />
         )}
-        {view === 1 && (
+        {view === 1 && <CrowdForecast />}
+        {view === 2 && (
           <LogForm
             onSubmit={handleLogSubmit}
             editEntry={editEntry}
             onCancel={editEntry ? handleCancelEdit : undefined}
           />
-        )}
-        {view === 2 && <CrowdForecast />}
+        )}}
         {view === 3 && (
           <History
             entries={entries}
