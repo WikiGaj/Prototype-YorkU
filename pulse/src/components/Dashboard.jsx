@@ -3,39 +3,35 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import WaterDropIcon from '@mui/icons-material/WaterDrop';
 import MetricCard from './MetricCard';
 import CrowdWidget from './CrowdWidget';
 
 const METRIC_TYPES = ['food', 'steps', 'water', 'sleep'];
 
 /**
- * Dashboard screen: four metric cards showing today's totals with mini trends,
- * plus quick-add shortcuts.
+ * Dashboard screen.
+ *
+ * Visual hierarchy is designed around the PRD's test goal: does the crowd
+ * forecasting feature drive gym attendance?  So the gym crowd widget leads,
+ * and health tracking is a clean secondary section below it.
  */
 export default function Dashboard({ entries, onQuickAdd, onQuickWater, onOpenCrowd }) {
-  // Today's date string for filtering
-  const todayStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+  const todayStr = new Date().toLocaleDateString('en-CA');
 
-  // Compute today's totals and trend data for each type
   const metrics = useMemo(() => {
     return METRIC_TYPES.map((type) => {
       const typeEntries = entries.filter((e) => e.type === type);
-
-      // Today's total
       const todayEntries = typeEntries.filter(
         (e) => new Date(e.timestamp).toLocaleDateString('en-CA') === todayStr
       );
       const todayTotal = todayEntries.reduce((sum, e) => sum + e.value, 0);
 
-      // Aggregate by day for trend (last 14 days)
       const byDay = {};
       typeEntries.forEach((e) => {
         const day = new Date(e.timestamp).toLocaleDateString('en-CA');
         byDay[day] = (byDay[day] || 0) + e.value;
       });
 
-      // Build trend data for last 14 days (fill gaps with 0)
       const trendData = [];
       for (let i = 13; i >= 0; i--) {
         const d = new Date();
@@ -57,35 +53,63 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onOpenCro
   }, [entries, todayStr]);
 
   return (
-    <Box sx={{ maxWidth: 900, mx: 'auto', px: 2, py: 3 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontSize: '1.2rem' }}>
-          Today
-        </Typography>
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<WaterDropIcon />}
-          onClick={onQuickWater}
-          id="quick-water-button"
-          sx={{ fontSize: '0.75rem' }}
-        >
-          +250 ml
-        </Button>
-      </Box>
+    <Box sx={{ maxWidth: 720, mx: 'auto', px: 2, py: 3 }}>
+      {/* Page heading */}
+      <Typography
+        sx={{
+          fontFamily: '"Space Grotesk", sans-serif',
+          fontSize: { xs: '1.1rem', sm: '1.25rem' },
+          fontWeight: 700,
+          color: 'text.primary',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          mb: 0.5,
+        }}
+      >
+        Today
+      </Typography>
+      <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', mb: 3 }}>
+        {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+      </Typography>
 
-      {/* Gym crowd widget — tap to open full forecast */}
+      {/* Gym crowd — the primary feature being tested */}
       <CrowdWidget onOpen={onOpenCrowd} />
 
-      {/* Health metrics section */}
-      <Typography variant="h6" sx={{ fontSize: '0.78rem', color: 'text.secondary', mb: 2, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-        Health Tracking
-      </Typography>
+      {/* Health tracking — secondary section */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, mt: 4 }}>
+        <Typography
+          sx={{
+            fontFamily: '"Space Grotesk", sans-serif',
+            fontSize: '0.72rem',
+            fontWeight: 600,
+            color: 'text.secondary',
+            textTransform: 'uppercase',
+            letterSpacing: '0.10em',
+          }}
+        >
+          Health Tracking
+        </Typography>
+        <Button
+          variant="text"
+          size="small"
+          onClick={onQuickWater}
+          id="quick-water-button"
+          sx={{
+            fontSize: '0.72rem',
+            color: 'text.secondary',
+            textTransform: 'none',
+            minWidth: 'auto',
+            '&:hover': { color: 'primary.light', backgroundColor: 'transparent' },
+          }}
+        >
+          + Log water
+        </Button>
+      </Box>
 
       {/* Metric cards in a 2×2 grid */}
       <Grid container spacing={2}>
         {metrics.map((m) => (
-          <Grid size={{ xs: 6, sm: 6, md: 3 }} key={m.type}>
+          <Grid size={{ xs: 6, sm: 6, md: 6 }} key={m.type}>
             <MetricCard
               type={m.type}
               todayTotal={m.todayTotal}

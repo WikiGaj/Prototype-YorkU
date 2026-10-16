@@ -5,21 +5,16 @@ import CardActionArea from '@mui/material/CardActionArea';
 import Typography from '@mui/material/Typography';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import { tokens } from '../theme';
 import useGymCrowd from '../hooks/useGymCrowd';
-import { TIERS } from '../data/gymCapacity';
 
 /**
- * CrowdWidget — a clean, minimal card for the dashboard that gives a
- * one-glance summary of current gym crowd. Tapping it opens the full
- * CrowdForecast view.
+ * CrowdWidget — the hero element on the dashboard.
  *
- * Design principles:
- *   - One headline number (occupancy %) with a traffic-tier pill
- *   - One supporting line (best time or status)
- *   - No charts, no sparklines, no hour labels — save that for the detail page
- *   - WCAG AA contrast on all text and indicators
- *   - Visually distinct from health metric cards (full-width, accent left border)
+ * Gives a one-glance summary of current gym crowd and the best time to go.
+ * Tapping it opens the full CrowdForecast view with the 8-hour chart.
+ *
+ * The visual is designed to be the first thing a student sees, since the
+ * PRD's success metric is whether this feature drives gym attendance.
  */
 export default function CrowdWidget({ onOpen }) {
   const crowd = useGymCrowd();
@@ -33,131 +28,157 @@ export default function CrowdWidget({ onOpen }) {
     dataOnline,
   } = crowd;
 
-  // Determine the status text shown under the headline
   const statusText = useMemo(() => {
-    if (!facilityOpen) return `Closed · Opens at ${operatingHours.open}:00`;
-    if (!dataOnline) return 'Historical estimates only';
-    if (bestTime) return `Best time to go: ${bestTime.label}`;
+    if (!facilityOpen) return `Opens at ${operatingHours.open}:00`;
+    if (!dataOnline) return 'Historical estimates — tap for details';
+    if (bestTime) return `Best time today: ${bestTime.label}`;
     return 'Tap for 8-hour forecast';
   }, [facilityOpen, dataOnline, bestTime, operatingHours]);
 
   const tierColor = liveTier?.color || '#8E8EA0';
-  const tierBg = liveTier?.bg || 'rgba(142,142,160,0.10)';
-  const tierBorder = liveTier?.border || 'rgba(142,142,160,0.25)';
+  const tierBg = liveTier?.bg || 'rgba(142,142,160,0.08)';
+  const tierBorder = liveTier?.border || 'rgba(142,142,160,0.20)';
 
   return (
     <Card
       id="crowd-widget"
       sx={{
-        mb: 3,
         position: 'relative',
         overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          left: 0, top: 0, bottom: 0,
-          width: 4,
-          backgroundColor: facilityOpen && dataOnline ? tierColor : '#8E8EA0',
+        border: `1px solid ${tierBorder}`,
+        '&:hover': {
+          borderColor: tierColor,
         },
       }}
     >
       <CardActionArea
         onClick={onOpen}
         aria-label={`Gym crowd: ${facilityOpen ? `${liveTier?.label || 'unknown'}, ${liveOccupancyPct}% capacity` : 'closed'}. Tap for full forecast.`}
-        sx={{ px: 2.5, py: 2, '&:hover': { backgroundColor: 'transparent' } }}
+        sx={{ '&:hover': { backgroundColor: 'transparent' } }}
       >
-        {/* Top row: icon + label, chevron */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <FitnessCenterIcon sx={{ color: 'primary.light', fontSize: 18 }} />
-            <Typography
-              sx={{
-                fontFamily: '"Space Grotesk", sans-serif',
-                fontSize: '0.72rem',
-                fontWeight: 600,
-                color: 'text.secondary',
-                textTransform: 'uppercase',
-                letterSpacing: '0.10em',
-              }}
-            >
-              Gym Crowd
-            </Typography>
-          </Box>
-          <ChevronRightIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
-        </Box>
-
-        {/* Main content row */}
-        {facilityOpen ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {/* Tier pill */}
-            <Box
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.75,
-                px: 1.5,
-                py: 0.5,
-                borderRadius: 6,
-                backgroundColor: tierBg,
-                border: `1px solid ${tierBorder}`,
-                flexShrink: 0,
-              }}
-            >
-              <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: tierColor }} />
+        <Box sx={{ px: 3, py: 2.5 }}>
+          {/* Header row */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <FitnessCenterIcon sx={{ color: 'primary.light', fontSize: 20 }} />
               <Typography
                 sx={{
                   fontFamily: '"Space Grotesk", sans-serif',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  color: tierColor,
-                  letterSpacing: '0.04em',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  color: 'text.secondary',
                   textTransform: 'uppercase',
+                  letterSpacing: '0.10em',
                 }}
               >
-                {liveTier?.label || '—'}
+                Tait McKenzie Centre
               </Typography>
             </Box>
+            <ChevronRightIcon sx={{ color: 'text.secondary', fontSize: 22 }} />
+          </Box>
 
-            {/* Occupancy number */}
-            {dataOnline && liveOccupancyPct != null ? (
+          {/* --- Closed state --- */}
+          {!facilityOpen ? (
+            <Box>
               <Typography
                 sx={{
-                  fontSize: '0.85rem',
-                  color: 'text.primary',
-                  fontWeight: 500,
+                  fontSize: '1.5rem',
+                  fontWeight: 700,
+                  color: 'text.secondary',
+                  lineHeight: 1.2,
                 }}
               >
-                {liveOccupancyPct}% full · ~{liveOccupancyPeople} people
+                Closed
               </Typography>
-            ) : (
-              <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
-                Estimates from recent trends
+              <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', mt: 0.5 }}>
+                {statusText}
               </Typography>
-            )}
-          </Box>
-        ) : (
-          <Typography
-            sx={{
-              fontSize: '0.9rem',
-              color: 'text.secondary',
-              fontWeight: 500,
-            }}
-          >
-            The Fitness Centre is closed
-          </Typography>
-        )}
+            </Box>
+          ) : (
+            /* --- Open: hero row --- */
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+                flexWrap: { xs: 'wrap', sm: 'nowrap' },
+              }}
+            >
+              {/* Tier badge — the big visual */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.25,
+                  px: 2,
+                  py: 1,
+                  borderRadius: 2,
+                  backgroundColor: tierBg,
+                  border: `1px solid ${tierBorder}`,
+                  flexShrink: 0,
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    backgroundColor: tierColor,
+                  }}
+                />
+                <Typography
+                  sx={{
+                    fontFamily: '"Space Grotesk", sans-serif',
+                    fontWeight: 700,
+                    fontSize: '1.3rem',
+                    color: tierColor,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    lineHeight: 1,
+                  }}
+                >
+                  {liveTier?.label || '—'}
+                </Typography>
+              </Box>
 
-        {/* Status line */}
-        <Typography
-          sx={{
-            mt: 1,
-            fontSize: '0.78rem',
-            color: 'text.secondary',
-            lineHeight: 1.4,
-          }}
-        >
-          {statusText}
-        </Typography>
+              {/* Occupancy stats */}
+              <Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 0 } }}>
+                {dataOnline && liveOccupancyPct != null ? (
+                  <Typography
+                    sx={{
+                      fontSize: '1.1rem',
+                      fontWeight: 600,
+                      color: 'text.primary',
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {liveOccupancyPct}% full
+                    <Typography
+                      component="span"
+                      sx={{ fontSize: '0.85rem', color: 'text.secondary', fontWeight: 400, ml: 1 }}
+                    >
+                      ~{liveOccupancyPeople} people
+                    </Typography>
+                  </Typography>
+                ) : (
+                  <Typography sx={{ fontSize: '1rem', color: 'text.secondary', fontWeight: 500 }}>
+                    Estimates from recent trends
+                  </Typography>
+                )}
+                <Typography
+                  sx={{
+                    fontSize: '0.82rem',
+                    color: 'text.secondary',
+                    mt: 0.5,
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {statusText}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+        </Box>
       </CardActionArea>
     </Card>
   );
