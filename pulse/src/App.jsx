@@ -54,17 +54,6 @@ export default function App() {
     setView(1);
   }, []);
 
-  // Quick-add 250 ml water
-  const handleQuickWater = useCallback(() => {
-    add({
-      type: 'water',
-      value: 250,
-      unit: 'ml',
-      note: '',
-      timestamp: new Date().toISOString(),
-    });
-  }, [add]);
-
   // Edit entry: switch to Log view with the entry pre-filled
   const handleEdit = useCallback((entry) => {
     setEditEntry(entry);
@@ -110,7 +99,6 @@ export default function App() {
           <Dashboard
             entries={entries}
             onQuickAdd={handleQuickAdd}
-            onQuickWater={handleQuickWater}
             onOpenCrowd={handleOpenCrowd}
           />
         )}

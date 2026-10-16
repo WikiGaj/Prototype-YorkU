@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
 import MetricCard from './MetricCard';
 import CrowdWidget from './CrowdWidget';
 
@@ -15,7 +14,7 @@ const METRIC_TYPES = ['food', 'steps', 'water', 'sleep'];
  * forecasting feature drive gym attendance?  So the gym crowd widget leads,
  * and health tracking is a clean secondary section below it.
  */
-export default function Dashboard({ entries, onQuickAdd, onQuickWater, onOpenCrowd }) {
+export default function Dashboard({ entries, onQuickAdd, onOpenCrowd }) {
   const todayStr = new Date().toLocaleDateString('en-CA');
 
   const metrics = useMemo(() => {
@@ -76,35 +75,20 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onOpenCro
       <CrowdWidget onOpen={onOpenCrowd} />
 
       {/* Health tracking — secondary section */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, mt: 4 }}>
-        <Typography
-          sx={{
-            fontFamily: '"Space Grotesk", sans-serif',
-            fontSize: '0.72rem',
-            fontWeight: 600,
-            color: 'text.secondary',
-            textTransform: 'uppercase',
-            letterSpacing: '0.10em',
-          }}
-        >
-          Health Tracking
-        </Typography>
-        <Button
-          variant="text"
-          size="small"
-          onClick={onQuickWater}
-          id="quick-water-button"
-          sx={{
-            fontSize: '0.72rem',
-            color: 'text.secondary',
-            textTransform: 'none',
-            minWidth: 'auto',
-            '&:hover': { color: 'primary.light', backgroundColor: 'transparent' },
-          }}
-        >
-          + Log water
-        </Button>
-      </Box>
+      <Typography
+        sx={{
+          fontFamily: '"Space Grotesk", sans-serif',
+          fontSize: '0.72rem',
+          fontWeight: 600,
+          color: 'text.secondary',
+          textTransform: 'uppercase',
+          letterSpacing: '0.10em',
+          mb: 2,
+          mt: 4,
+        }}
+      >
+        Health Tracking
+      </Typography>
 
       {/* Metric cards in a 2×2 grid */}
       <Grid container spacing={2}>
