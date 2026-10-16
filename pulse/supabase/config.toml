@@ -1,0 +1,2 @@
+[functions.gym-occupancy]
+verify_jwt = false
