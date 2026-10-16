@@ -77,6 +77,11 @@ export default function Dashboard({ entries, onQuickAdd, onQuickWater, onOpenCro
       {/* Gym crowd widget — tap to open full forecast */}
       <CrowdWidget onOpen={onOpenCrowd} />
 
+      {/* Health metrics section */}
+      <Typography variant="h6" sx={{ fontSize: '0.78rem', color: 'text.secondary', mb: 2, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        Health Tracking
+      </Typography>
+
       {/* Metric cards in a 2×2 grid */}
       <Grid container spacing={2}>
         {metrics.map((m) => (

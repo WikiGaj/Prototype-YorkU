@@ -142,9 +142,9 @@ export function applyTrendWeighting(baseline, trendBias = 0) {
 
 // --- Traffic tier mapping --------------------------------------------------
 export const TIERS = {
-  low: { key: 'low', label: 'Low', color: '#22C55E', threshold: [0, 40] },
-  medium: { key: 'medium', label: 'Medium', color: '#FACC15', threshold: [40, 75] },
-  high: { key: 'high', label: 'High', color: '#EF4444', threshold: [75, 100] },
+  low: { key: 'low', label: 'Low', color: '#4ADE80', bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.35)', threshold: [0, 40] },
+  medium: { key: 'medium', label: 'Medium', color: '#FBBF24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.35)', threshold: [40, 75] },
+  high: { key: 'high', label: 'High', color: '#F87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.35)', threshold: [75, 100] },
 };
 
 export function occupancyToTier(pct) {
