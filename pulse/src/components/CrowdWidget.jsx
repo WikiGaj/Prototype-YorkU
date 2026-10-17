@@ -5,35 +5,45 @@ import CardActionArea from '@mui/material/CardActionArea';
 import Typography from '@mui/material/Typography';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import useGymCrowd from '../hooks/useGymCrowd';
 
 /**
  * CrowdWidget — the hero element on the dashboard.
  *
- * Gives a one-glance summary of current gym crowd and the best time to go.
- * Tapping it opens the full CrowdForecast view with the 8-hour chart.
+ * Shows the current traffic level (Low/Medium/High) and best time to go.
+ * Tapping opens the full CrowdForecast view.
  *
- * The visual is designed to be the first thing a student sees, since the
- * PRD's success metric is whether this feature drives gym attendance.
+ * All crowd levels are simulated for demonstration purposes.
  */
 export default function CrowdWidget({ onOpen }) {
   const crowd = useGymCrowd();
   const {
     facilityOpen,
     operatingHours,
-    liveOccupancyPct,
-    liveOccupancyPeople,
+    nextOpening,
     liveTier,
     bestTime,
     dataOnline,
   } = crowd;
 
   const statusText = useMemo(() => {
-    if (!facilityOpen) return `Opens at ${operatingHours.open}:00`;
-    if (!dataOnline) return 'Historical estimates — tap for details';
+    if (!facilityOpen) {
+      if (nextOpening) {
+        const dayLabel = nextOpening.toLocaleDateString('en-US', { weekday: 'short' });
+        const timeLabel = nextOpening.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        const isToday = new Date().getDate() === nextOpening.getDate() &&
+          new Date().getMonth() === nextOpening.getMonth();
+        return isToday
+          ? `Opens at ${timeLabel}`
+          : `Opens ${dayLabel} at ${timeLabel}`;
+      }
+      return 'Check back during operating hours';
+    }
+    if (!dataOnline) return 'Forecast unavailable — tap for details';
     if (bestTime) return `Best time today: ${bestTime.label}`;
-    return 'Tap for 8-hour forecast';
-  }, [facilityOpen, dataOnline, bestTime, operatingHours]);
+    return 'Tap for full forecast';
+  }, [facilityOpen, dataOnline, bestTime, nextOpening]);
 
   const tierColor = liveTier?.color || '#8E8EA0';
   const tierBg = liveTier?.bg || 'rgba(142,142,160,0.08)';
@@ -46,14 +56,12 @@ export default function CrowdWidget({ onOpen }) {
         position: 'relative',
         overflow: 'hidden',
         border: `1px solid ${tierBorder}`,
-        '&:hover': {
-          borderColor: tierColor,
-        },
+        '&:hover': { borderColor: tierColor },
       }}
     >
       <CardActionArea
         onClick={onOpen}
-        aria-label={`Gym crowd: ${facilityOpen ? `${liveTier?.label || 'unknown'}, ${liveOccupancyPct}% capacity` : 'closed'}. Tap for full forecast.`}
+        aria-label={`Gym crowd: ${facilityOpen ? (liveTier?.label || 'unknown') : 'closed'}. Tap for full forecast.`}
         sx={{ '&:hover': { backgroundColor: 'transparent' } }}
       >
         <Box sx={{ px: 3, py: 2.5 }}>
@@ -94,8 +102,25 @@ export default function CrowdWidget({ onOpen }) {
                 {statusText}
               </Typography>
             </Box>
+          ) : !dataOnline ? (
+            /* --- Missing data state --- */
+            <Box>
+              <Typography
+                sx={{
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
+                  color: 'text.secondary',
+                  lineHeight: 1.3,
+                }}
+              >
+                Forecast unavailable
+              </Typography>
+              <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', mt: 0.5 }}>
+                {statusText}
+              </Typography>
+            </Box>
           ) : (
-            /* --- Open: hero row --- */
+            /* --- Open with data: hero row --- */
             <Box
               sx={{
                 display: 'flex',
@@ -104,7 +129,7 @@ export default function CrowdWidget({ onOpen }) {
                 flexWrap: { xs: 'wrap', sm: 'nowrap' },
               }}
             >
-              {/* Tier badge — the big visual */}
+              {/* Tier badge */}
               <Box
                 sx={{
                   display: 'flex',
@@ -141,30 +166,18 @@ export default function CrowdWidget({ onOpen }) {
                 </Typography>
               </Box>
 
-              {/* Occupancy stats */}
+              {/* Status text */}
               <Box sx={{ flex: 1, minWidth: { xs: '100%', sm: 0 } }}>
-                {dataOnline && liveOccupancyPct != null ? (
-                  <Typography
-                    sx={{
-                      fontSize: '1.1rem',
-                      fontWeight: 600,
-                      color: 'text.primary',
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {liveOccupancyPct}% full
-                    <Typography
-                      component="span"
-                      sx={{ fontSize: '0.85rem', color: 'text.secondary', fontWeight: 400, ml: 1 }}
-                    >
-                      ~{liveOccupancyPeople} people
-                    </Typography>
-                  </Typography>
-                ) : (
-                  <Typography sx={{ fontSize: '1rem', color: 'text.secondary', fontWeight: 500 }}>
-                    Estimates from recent trends
-                  </Typography>
-                )}
+                <Typography
+                  sx={{
+                    fontSize: '1rem',
+                    color: 'text.primary',
+                    fontWeight: 500,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  Current crowd level
+                </Typography>
                 <Typography
                   sx={{
                     fontSize: '0.82rem',
@@ -178,6 +191,24 @@ export default function CrowdWidget({ onOpen }) {
               </Box>
             </Box>
           )}
+
+          {/* Simulated data notice */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.5,
+              mt: 2,
+              pt: 1.5,
+              borderTop: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <InfoOutlinedIcon sx={{ fontSize: 14, color: 'text.secondary', opacity: 0.6 }} />
+            <Typography sx={{ fontSize: '0.68rem', color: 'text.secondary', opacity: 0.7 }}>
+              Simulated demo data — not live occupancy
+            </Typography>
+          </Box>
         </Box>
       </CardActionArea>
     </Card>

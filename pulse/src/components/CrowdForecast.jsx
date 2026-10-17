@@ -6,46 +6,30 @@ import Typography from '@mui/material/Typography';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Alert from '@mui/material/Alert';
-import AlertTitle from '@mui/material/AlertTitle';
 import Fade from '@mui/material/Fade';
 import {
   BarChart,
   Bar,
   XAxis,
-  YAxis,
   Cell,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
 } from 'recharts';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import SchoolIcon from '@mui/icons-material/School';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import { tokens } from '../theme';
 import useGymCrowd, { TEST_STATES } from '../hooks/useGymCrowd';
 import { TIERS } from '../data/gymCapacity';
 
-// --- Custom tooltip for the bar chart -------------------------------------
+// --- Custom tooltip -------------------------------------------------------
 function ChartTooltip({ active, payload }) {
   if (!active || !payload || !payload.length) return null;
   const d = payload[0].payload;
-  if (!d.isWithinHours) {
-    return (
-      <Box sx={{
-        backgroundColor: tokens.surfaceRaised,
-        border: `1px solid ${tokens.borderViolet}`,
-        borderRadius: 1,
-        px: 1.5, py: 1,
-        fontSize: 13,
-        color: '#8E8EA0',
-      }}>
-        {d.label} — Closed
-      </Box>
-    );
-  }
   return (
     <Box sx={{
       backgroundColor: tokens.surfaceRaised,
@@ -57,14 +41,14 @@ function ChartTooltip({ active, payload }) {
     }}>
       <Box sx={{ fontWeight: 600, mb: 0.25, color: d.tier?.color || '#F5F5FA' }}>{d.label}</Box>
       <Box sx={{ color: 'text.secondary', fontSize: 12 }}>
-        {d.occupancy}% — {d.tier ? d.tier.label : 'N/A'}
+        {d.tier ? d.tier.label : 'N/A'}
       </Box>
     </Box>
   );
 }
 
-// --- Traffic badge --------------------------------------------------------
-function TrafficBadge({ tier, occupancyPct, people, maxCapacity }) {
+// --- Traffic badge (tier only, no numbers) --------------------------------
+function TrafficBadge({ tier }) {
   if (!tier) {
     return (
       <Box sx={{
@@ -73,7 +57,7 @@ function TrafficBadge({ tier, occupancyPct, people, maxCapacity }) {
         backgroundColor: 'rgba(142,142,160,0.12)',
         border: '1px solid rgba(142,142,160,0.3)',
       }}>
-        <CancelIcon sx={{ color: '#8E8EA0' }} />
+        <CancelIcon sx={{ color: '#A0A0B0' }} />
         <Typography sx={{ fontWeight: 600, color: '#A0A0B0' }}>Data unavailable</Typography>
       </Box>
     );
@@ -82,7 +66,7 @@ function TrafficBadge({ tier, occupancyPct, people, maxCapacity }) {
   return (
     <Box
       role="status"
-      aria-label={`Current crowd level: ${tier.label}, ${occupancyPct}% capacity, approximately ${people} of ${maxCapacity} people`}
+      aria-label={`Current crowd level: ${tier.label}`}
       sx={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -95,15 +79,8 @@ function TrafficBadge({ tier, occupancyPct, people, maxCapacity }) {
         transition: 'all 0.3s ease',
       }}
     >
-      <Box
-        sx={{
-          width: 12, height: 12, borderRadius: '50%',
-          backgroundColor: tier.color,
-          flexShrink: 0,
-        }}
-      />
+      <Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: tier.color, flexShrink: 0 }} />
       <Typography
-        component="span"
         sx={{
           fontFamily: '"Space Grotesk", sans-serif',
           fontWeight: 700,
@@ -115,33 +92,6 @@ function TrafficBadge({ tier, occupancyPct, people, maxCapacity }) {
       >
         {tier.label}
       </Typography>
-      <Typography
-        component="span"
-        sx={{ color: 'text.primary', fontSize: '0.9rem', fontWeight: 500 }}
-      >
-        {occupancyPct}% · ~{people} of {maxCapacity}
-      </Typography>
-    </Box>
-  );
-}
-
-// --- Occupancy bar --------------------------------------------------------
-function OccupancyBar({ occupancyPct, tier }) {
-  return (
-    <Box sx={{ mt: 1.5 }}>
-      <Box sx={{
-        height: 6, borderRadius: 3,
-        backgroundColor: 'rgba(255,255,255,0.06)',
-        overflow: 'hidden',
-      }}>
-        <Box sx={{
-          height: '100%',
-          width: `${occupancyPct}%`,
-          backgroundColor: tier ? tier.color : '#8E8EA0',
-          borderRadius: 3,
-          transition: 'width 0.5s ease, background-color 0.3s ease',
-        }} />
-      </Box>
     </Box>
   );
 }
@@ -185,7 +135,7 @@ function Recommendation({ bestTime, muted, reason }) {
             Best time to go
           </Typography>
           <Typography sx={{ fontSize: '0.78rem', color: 'text.primary', mt: 0.25 }}>
-            {bestTime.label} — {bestTime.occupancy}% capacity ({bestTime.tier.label})
+            {bestTime.label} — {bestTime.tier.label}
           </Typography>
         </Box>
       </Box>
@@ -193,7 +143,7 @@ function Recommendation({ bestTime, muted, reason }) {
   );
 }
 
-// --- Tier legend ----------------------------------------------------------
+// --- Tier legend (labels only, no percentages) ----------------------------
 function TierLegend() {
   return (
     <Box sx={{ display: 'flex', gap: 2.5, flexWrap: 'wrap' }}>
@@ -201,10 +151,35 @@ function TierLegend() {
         <Box key={t.key} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: t.color }} />
           <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>
-            {t.label} ({t.threshold[0]}–{t.threshold[1]}%)
+            {t.label}
           </Typography>
         </Box>
       ))}
+    </Box>
+  );
+}
+
+// --- Simulated data notice ------------------------------------------------
+function SimDataNotice({ sx }) {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 1,
+        px: 2,
+        py: 1.5,
+        borderRadius: 2,
+        backgroundColor: 'rgba(142,142,160,0.06)',
+        border: '1px solid rgba(142,142,160,0.12)',
+        ...sx,
+      }}
+    >
+      <InfoOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary', mt: 0.1, opacity: 0.7 }} />
+      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.5 }}>
+        This is a preview of our crowd forecasting feature. Crowd levels are
+        simulated for demonstration purposes and do not reflect live occupancy.
+      </Typography>
     </Box>
   );
 }
@@ -221,29 +196,39 @@ export default function CrowdForecast() {
     simDate,
     facilityOpen,
     operatingHours,
-    liveOccupancyPct,
-    liveOccupancyPeople,
+    nextOpening,
     liveTier,
     forecast,
     bestTime,
     activeClass,
     recommendationMuted,
     dataOnline,
-    maxCapacity,
   } = crowd;
 
-  const chartData = useMemo(() => forecast, [forecast]);
+  const chartData = useMemo(() => forecast || [], [forecast]);
 
   const muteReason = useMemo(() => {
     if (!facilityOpen) return 'The Fitness Centre is closed.';
-    if (!dataOnline) return 'Live data is offline — check back shortly.';
+    if (!dataOnline) return 'Forecast information is currently unavailable. Please try again later.';
     if (activeClass) return `You have a class now: ${activeClass.name} (${activeClass.start}–${activeClass.end}).`;
-    if (bestTime === null) return 'No suitable time slot found in the next 8 hours.';
+    if (bestTime === null) return 'No suitable time slot found in the remaining open hours.';
     return '';
   }, [facilityOpen, dataOnline, activeClass, bestTime]);
 
   const formatHour = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+  const isWeekend = simDate.getDay() === 0 || simDate.getDay() === 6;
+
+  // Next opening time label for closed state
+  const nextOpeningLabel = useMemo(() => {
+    if (!nextOpening) return null;
+    const dayLabel = nextOpening.toLocaleDateString('en-US', { weekday: 'long' });
+    const timeLabel = nextOpening.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const isToday = new Date().getDate() === nextOpening.getDate() &&
+      new Date().getMonth() === nextOpening.getMonth();
+    return isToday ? `Opens today at ${timeLabel}` : `Opens ${dayLabel} at ${timeLabel}`;
+  }, [nextOpening]);
 
   return (
     <Box sx={{ maxWidth: 640, mx: 'auto', px: 2, py: 3 }}>
@@ -258,43 +243,35 @@ export default function CrowdForecast() {
         {formatDate(simDate)} · {formatHour(simDate)}
       </Typography>
 
-      {/* --- Offline banner (eval state 5) --- */}
-      {!dataOnline && facilityOpen && (
-        <Alert
-          severity="warning"
-          icon={<WarningAmberIcon />}
-          sx={{
-            mb: 2,
-            backgroundColor: TIERS.medium.bg,
-            border: `1px solid ${TIERS.medium.border}`,
-            '& .MuiAlert-icon': { color: TIERS.medium.color },
-            '& .MuiAlert-message': { color: 'text.primary' },
-          }}
-          id="offline-banner"
-        >
-          <AlertTitle sx={{ fontSize: '0.82rem', color: TIERS.medium.color }}>
-            Historical estimates only — live data offline
-          </AlertTitle>
-          <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-            Showing projections from recent trends. Live check-in data will return shortly.
-          </Typography>
-        </Alert>
-      )}
-
-      {/* --- Closed state (eval state 2) --- */}
-      {!facilityOpen ? (
-        <Card id="facility-closed-card">
-          <CardContent sx={{ py: 5, px: 3, textAlign: 'center' }}>
-            <CancelIcon sx={{ fontSize: 44, color: '#8E8EA0', mb: 2 }} />
+      {/* --- Missing data state --- */}
+      {facilityOpen && !dataOnline ? (
+        <Card id="missing-data-card" sx={{ mb: 2 }}>
+          <CardContent sx={{ py: 4, px: 3, textAlign: 'center' }}>
+            <WarningAmberIcon sx={{ fontSize: 40, color: '#A0A0B0', mb: 2 }} />
+            <Typography sx={{ fontSize: '1rem', fontWeight: 600, mb: 0.5, color: 'text.primary' }}>
+              Forecast unavailable
+            </Typography>
+            <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary' }}>
+              Forecast information is currently unavailable. Please try again later.
+            </Typography>
+          </CardContent>
+        </Card>
+      ) : !facilityOpen ? (
+        /* --- Closed state --- */
+        <Card id="facility-closed-card" sx={{ mb: 2 }}>
+          <CardContent sx={{ py: 4, px: 3, textAlign: 'center' }}>
+            <CancelIcon sx={{ fontSize: 40, color: '#8E8EA0', mb: 2 }} />
             <Typography sx={{ fontSize: '1.05rem', fontWeight: 600, mb: 0.5, color: 'text.primary' }}>
               The Fitness Centre is closed
             </Typography>
-            <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', mb: 2 }}>
-              Hours today: {operatingHours.open}:00 – {operatingHours.close}:00
+            <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', mb: 1 }}>
+              {isWeekend ? 'Weekend hours' : 'Weekday hours'}: {operatingHours.open}:00 AM – {operatingHours.close}:00 PM
             </Typography>
-            <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary' }}>
-              Come back during operating hours for live crowd levels and forecasts.
-            </Typography>
+            {nextOpeningLabel && (
+              <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary' }}>
+                {nextOpeningLabel}
+              </Typography>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -316,16 +293,7 @@ export default function CrowdForecast() {
                 Right Now
               </Typography>
 
-              <TrafficBadge
-                tier={liveTier}
-                occupancyPct={liveOccupancyPct}
-                people={liveOccupancyPeople}
-                maxCapacity={maxCapacity}
-              />
-
-              {liveOccupancyPct != null && (
-                <OccupancyBar occupancyPct={liveOccupancyPct} tier={liveTier} />
-              )}
+              <TrafficBadge tier={liveTier} />
 
               {/* Active class guardrail indicator */}
               {activeClass && (
@@ -344,7 +312,7 @@ export default function CrowdForecast() {
             </CardContent>
           </Card>
 
-          {/* --- 8-hour forecast chart card --- */}
+          {/* --- Forecast chart card --- */}
           <Card id="forecast-card" sx={{ mb: 2 }}>
             <CardContent sx={{ py: 3, px: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
@@ -358,43 +326,41 @@ export default function CrowdForecast() {
                     letterSpacing: '0.10em',
                   }}
                 >
-                  Next 8 Hours
+                  {isWeekend ? 'Weekend Forecast' : 'Weekday Forecast'}
                 </Typography>
                 <ScheduleIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
               </Box>
 
-              <Box sx={{ width: '100%', height: 180 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }} barGap={4}>
-                    <XAxis
-                      dataKey="label"
-                      stroke="#8E8EA0"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      stroke="#8E8EA0"
-                      fontSize={11}
-                      tickLine={false}
-                      axisLine={false}
-                      domain={[0, 100]}
-                      tickFormatter={(v) => `${v}%`}
-                    />
-                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                    <ReferenceLine y={40} stroke="rgba(255,255,255,0.10)" strokeDasharray="3 3" />
-                    <ReferenceLine y={75} stroke="rgba(255,255,255,0.10)" strokeDasharray="3 3" />
-                    <Bar dataKey="occupancy" radius={[5, 5, 0, 0]} maxBarSize={44}>
-                      {chartData.map((entry, i) => (
-                        <Cell
-                          key={`cell-${i}`}
-                          fill={entry.isWithinHours ? entry.tier?.color : 'rgba(142,142,160,0.12)'}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
+              {chartData.length > 0 ? (
+                <Box sx={{ width: '100%', height: 180 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }} barGap={4}>
+                      <XAxis
+                        dataKey="label"
+                        stroke="#8E8EA0"
+                        fontSize={11}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                      <Bar dataKey="level" radius={[5, 5, 0, 0]} maxBarSize={44}>
+                        {chartData.map((entry, i) => (
+                          <Cell
+                            key={`cell-${i}`}
+                            fill={entry.tier?.color || 'rgba(142,142,160,0.12)'}
+                          />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              ) : (
+                <Box sx={{ py: 3, textAlign: 'center' }}>
+                  <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary' }}>
+                    No remaining open hours today.
+                  </Typography>
+                </Box>
+              )}
 
               <Box sx={{ mt: 1.5 }}>
                 <TierLegend />
@@ -428,11 +394,14 @@ export default function CrowdForecast() {
         </>
       )}
 
+      {/* --- Simulated data notice --- */}
+      <SimDataNotice sx={{ mb: 3 }} />
+
       {/* --- Operating hours info --- */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
         <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
         <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-          Hours: {operatingHours.open}:00 – {operatingHours.close}:00 · Max capacity: {maxCapacity}
+          Mon–Fri: 7:00 AM – 8:00 PM · Sat–Sun: 9:00 AM – 4:00 PM
         </Typography>
       </Box>
 

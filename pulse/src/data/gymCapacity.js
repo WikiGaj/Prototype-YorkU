@@ -1,27 +1,22 @@
 /**
  * Gym capacity data model and forecasting engine.
  *
- * Simulates read-only hourly queries against the Tait McKenzie check-in
- * database. No new data sources or hardware — this module stands in for
- * the real database with realistic historical baselines and live check-in
- * patterns so the feature is fully demonstrable.
+ * This is a prototype/MVP — all crowd levels are simulated for demonstration
+ * purposes and do not reflect live or real-time occupancy data.
  *
  * Forecasting approach:
- *   1. Historical hourly baselines per day-of-week × hour, derived from a
- *      weighted 4-week average (most recent week weighted highest).
- *   2. Live deviation: the delta between current actual occupancy and the
- *      baseline for the current hour, propagated forward with exponential
- *      decay so a live surge influences near-term predictions.
- *   3. Occupancy % → traffic tier: Low < 40 %, Medium 40–75 %, High > 75 %.
+ *   1. Distinct weekday and weekend baseline curves based on historical
+ *      patterns. Weekday: morning rush, lunch bump, evening peak.
+ *      Weekend: gentler midday peak.
+ *   2. Occupancy → traffic tier: Low < 40%, Medium 40–75%, High > 75%.
+ *      Only the qualitative tier (Low/Medium/High) is shown to users.
+ *   3. Forecasts are only generated within operating hours.
  */
 
 // --- Facility parameters --------------------------------------------------
-export const FACILITY_MAX_CAPACITY = 300;
-
 export const OPERATING_HOURS = {
-  // 0 = Sunday … 6 = Saturday
-  weekday: { open: 6, close: 23 },  // 6:00 AM – 11:00 PM
-  weekend: { open: 8, close: 21 },  // 8:00 AM –  9:00 PM
+  weekday: { open: 7, close: 20 },   // 7:00 AM – 8:00 PM
+  weekend: { open: 9, close: 16 },   // 9:00 AM – 4:00 PM
 };
 
 export function getOperatingHours(dayOfWeek) {
@@ -34,6 +29,30 @@ export function isFacilityOpen(date) {
   const hour = date.getHours() + date.getMinutes() / 60;
   const hrs = getOperatingHours(day);
   return hour >= hrs.open && hour < hrs.close;
+}
+
+/**
+ * Given a date when the facility is closed, find the next opening time.
+ * Returns a Date object for the next opening, or null if none found within
+ * a reasonable window (scans up to 7 days).
+ */
+export function getNextOpeningTime(fromDate) {
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(fromDate);
+    d.setDate(d.getDate() + i);
+    d.setHours(0, 0, 0, 0);
+
+    const day = d.getDay();
+    const hrs = getOperatingHours(day);
+    const openingDate = new Date(d);
+    openingDate.setHours(hrs.open, 0, 0, 0);
+
+    // If today and opening time has already passed, skip
+    if (i === 0 && openingDate <= fromDate) continue;
+
+    return openingDate;
+  }
+  return null;
 }
 
 // --- Sample class timetable (guardrail) -----------------------------------
@@ -55,9 +74,6 @@ function parseTimeStr(s) {
   return h + m / 60;
 }
 
-/**
- * Returns the active class block for the given date, or null.
- */
 export function getActiveClassBlock(date) {
   const day = date.getDay();
   const hour = date.getHours() + date.getMinutes() / 60;
@@ -69,22 +85,18 @@ export function getActiveClassBlock(date) {
   );
 }
 
-/**
- * Returns true if the given hour falls inside a scheduled class block.
- */
 export function isDuringClass(date) {
   return getActiveClassBlock(date) !== null;
 }
 
 // --- Historical baseline curves -------------------------------------------
-// Occupancy percentage (0–100) by day-of-week × hour.
-// Weekday curve: morning rush (7–9), lunch bump (12–14), after-class peak
-// (16–19).  Weekend curve: gentler, midday peak (10–14).
+// Internal occupancy percentage (0–100) by hour.
+// Only the qualitative tier is shown to users.
 
 function buildWeekdayCurve() {
   const c = new Array(24).fill(0);
   for (let h = 0; h < 24; h++) {
-    if (h < 6 || h >= 23) { c[h] = 0; continue; }
+    if (h < 7 || h >= 20) { c[h] = 0; continue; }
     // Morning rush 7–9
     const morning = Math.exp(-Math.pow(h - 8, 2) / 2) * 45;
     // Lunch bump 12–14
@@ -101,11 +113,11 @@ function buildWeekdayCurve() {
 function buildWeekendCurve() {
   const c = new Array(24).fill(0);
   for (let h = 0; h < 24; h++) {
-    if (h < 8 || h >= 21) { c[h] = 0; continue; }
-    // Midday peak 10–14
-    const midday = Math.exp(-Math.pow(h - 12, 2) / 4) * 60;
+    if (h < 9 || h >= 16) { c[h] = 0; continue; }
+    // Midday peak 11–14
+    const midday = Math.exp(-Math.pow(h - 12, 2) / 3) * 55;
     const base = 15;
-    c[h] = Math.min(80, Math.round(midday + base));
+    c[h] = Math.min(75, Math.round(midday + base));
   }
   return c;
 }
@@ -113,25 +125,15 @@ function buildWeekendCurve() {
 const WEEKDAY_CURVE = buildWeekdayCurve();
 const WEEKEND_CURVE = buildWeekendCurve();
 
-/**
- * Historical baseline occupancy % for a given day-of-week and hour.
- */
 export function getBaseline(dayOfWeek, hour) {
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
   const curve = isWeekend ? WEEKEND_CURVE : WEEKDAY_CURVE;
   return curve[Math.round(hour) % 24] || 0;
 }
 
-// --- 4-week trend weighting ------------------------------------------------
-// Weighted moving average: most recent week has the highest weight.
+// --- Trend weighting -------------------------------------------------------
 const WEEK_WEIGHTS = [0.4, 0.3, 0.2, 0.1];
 
-/**
- * Simulates a 4-week weighted average around the baseline.
- * `trendBias` is a small per-week delta (e.g. +3 means the gym is getting
- * ~3 % busier each week).  The returned value nudges the baseline up or
- * down to reflect the recent trend.
- */
 export function applyTrendWeighting(baseline, trendBias = 0) {
   const adjustment = WEEK_WEIGHTS.reduce(
     (sum, w, i) => sum + w * trendBias * (4 - i),
@@ -142,9 +144,9 @@ export function applyTrendWeighting(baseline, trendBias = 0) {
 
 // --- Traffic tier mapping --------------------------------------------------
 export const TIERS = {
-  low: { key: 'low', label: 'Low', color: '#4ADE80', bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.35)', threshold: [0, 40] },
-  medium: { key: 'medium', label: 'Medium', color: '#FBBF24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.35)', threshold: [40, 75] },
-  high: { key: 'high', label: 'High', color: '#F87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.35)', threshold: [75, 100] },
+  low: { key: 'low', label: 'Low', color: '#4ADE80', bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.35)' },
+  medium: { key: 'medium', label: 'Medium', color: '#FBBF24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.35)' },
+  high: { key: 'high', label: 'High', color: '#F87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.35)' },
 };
 
 export function occupancyToTier(pct) {
@@ -153,57 +155,55 @@ export function occupancyToTier(pct) {
   return TIERS.high;
 }
 
-export function occupancyToPeople(pct) {
-  return Math.round((pct / 100) * FACILITY_MAX_CAPACITY);
-}
-
 // --- Forecasting engine ----------------------------------------------------
 
 /**
- * Generate an 8-hour forward forecast from `nowDate`.
+ * Generate a forward forecast from `nowDate` covering remaining operating
+ * hours. Only hours within operating hours are included — closed hours
+ * are excluded entirely (not shown as zero bars).
  *
  * @param {Date} nowDate     — the current moment
- * @param {number} livePct   — current live occupancy % (or null if offline)
- * @param {number} trendBias — per-week trend delta (default 0)
- * @param {boolean} dataOnline — whether live data is streaming
- * @returns {Array<{ hour: number, label: string, occupancy: number, tier: object, isPast: boolean }>}
+ * @param {number} livePct   — current occupancy % (internal, or null)
+ * @param {number} trendBias — per-week trend delta
+ * @param {boolean} dataOnline — whether data is available
+ * @returns {Array<{ hour, label, tier, isWithinHours, offset }> | null}
+ *   Returns null if dataOnline is false (missing data).
+ *   Returns [] if no operating hours remain today.
  */
 export function forecastHours(nowDate, livePct, trendBias = 0, dataOnline = true) {
+  if (!dataOnline) return null;
+
   const day = nowDate.getDay();
   const currentHour = nowDate.getHours() + nowDate.getMinutes() / 60;
-
-  // Live deviation propagated forward with decay
   const currentBaseline = getBaseline(day, currentHour);
-  const liveDeviation = dataOnline && livePct != null
+  const liveDeviation = livePct != null
     ? livePct - currentBaseline
     : 0;
 
   const hours = [];
-  for (let i = 0; i < 8; i++) {
-    const targetHour = currentHour + i;
+  for (let i = 0; i < 13; i++) {
     const targetDate = new Date(nowDate);
     targetDate.setHours(nowDate.getHours() + i, nowDate.getMinutes(), 0, 0);
     const targetDay = targetDate.getDay();
+    const targetHour = targetDate.getHours() + nowDate.getMinutes() / 60;
     const hrs = getOperatingHours(targetDay);
 
     const isWithinHours = targetHour >= hrs.open && targetHour < hrs.close;
+    if (!isWithinHours) continue;
 
-    let occupancy;
-    if (!isWithinHours) {
-      occupancy = 0;
-    } else {
-      const baseline = getBaseline(targetDay, targetHour);
-      const trended = applyTrendWeighting(baseline, trendBias);
-      const decay = Math.pow(0.7, i); // deviation fades over hours
-      occupancy = Math.max(0, Math.min(100, Math.round(trended + liveDeviation * decay)));
-    }
+    const baseline = getBaseline(targetDay, targetHour);
+    const decay = Math.pow(0.7, i);
+    const occupancy = Math.max(0, Math.min(100, Math.round(baseline + liveDeviation * decay)));
+
+    const tier = occupancyToTier(occupancy);
+    const tierLevel = { low: 0, medium: 1, high: 2 };
 
     hours.push({
       hour: targetDate.getHours(),
       label: targetDate.toLocaleTimeString('en-US', { hour: 'numeric' }),
-      occupancy,
-      tier: isWithinHours ? occupancyToTier(occupancy) : null,
-      isWithinHours,
+      tier,
+      level: tierLevel[tier.key],
+      isWithinHours: true,
       offset: i,
     });
   }
@@ -211,13 +211,14 @@ export function forecastHours(nowDate, livePct, trendBias = 0, dataOnline = true
 }
 
 /**
- * Find the best time to go in the next 8 hours — the hour with the lowest
- * predicted occupancy that is within operating hours AND not during a
- * scheduled class block.  Returns null if no valid slot exists (guardrail).
+ * Find the best time to go — the hour with the lowest predicted traffic
+ * that is within operating hours AND not during a scheduled class block.
+ * Returns null if no valid slot exists.
  */
-export function findBestTime(nowDate, forecast, classSchedule = SAMPLE_CLASS_SCHEDULE) {
+export function findBestTime(nowDate, forecast) {
+  if (!forecast || forecast.length === 0) return null;
+
   const candidates = forecast.filter((f) => {
-    if (!f.isWithinHours) return false;
     const targetDate = new Date(nowDate);
     targetDate.setHours(nowDate.getHours() + f.offset, nowDate.getMinutes(), 0, 0);
     if (isDuringClass(targetDate)) return false;
@@ -226,9 +227,11 @@ export function findBestTime(nowDate, forecast, classSchedule = SAMPLE_CLASS_SCH
 
   if (candidates.length === 0) return null;
 
+  // Priority: Low > Medium > High
+  const tierOrder = { low: 0, medium: 1, high: 2 };
   let best = candidates[0];
   for (const c of candidates) {
-    if (c.occupancy < best.occupancy) best = c;
+    if (tierOrder[c.tier.key] < tierOrder[best.tier.key]) best = c;
   }
   return best;
 }

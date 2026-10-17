@@ -1,30 +1,30 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-  FACILITY_MAX_CAPACITY,
   getOperatingHours,
   isFacilityOpen,
   getBaseline,
   applyTrendWeighting,
   occupancyToTier,
-  occupancyToPeople,
   forecastHours,
   findBestTime,
   getActiveClassBlock,
-  isDuringClass,
+  getNextOpeningTime,
   TIERS,
 } from '../data/gymCapacity';
 
 /**
- * useGymCrowd — hook that simulates live check-in data streaming from the
- * Tait McKenzie database and runs the forecasting engine.
+ * useGymCrowd — hook that simulates crowd data for the fitness centre.
  *
- * Exposes 6 test states that cover the eval criteria:
- *   1. happyPath       — standard open hours, live data streaming
- *   2. offHours        — facility closed at 11:30 PM
- *   3. surgeSpike      — sudden surge, tier flips to High within 60 s
- *   4. weekend         — Saturday morning, weekend model applied
- *   5. offlineData     — DB connection drops, historical-only banner
- *   6. guardrailConflict — recommendation muted during class / after hours
+ * All data is simulated for demonstration purposes. This is a prototype
+ * and is not connected to live or real-time occupancy data.
+ *
+ * Test states:
+ *   1. happyPath       — standard open hours
+ *   2. offHours        — facility closed, shows next opening
+ *   3. surgeSpike      — sudden surge, tier flips to High
+ *   4. weekend         — Saturday, weekend pattern
+ *   5. offlineData     — data unavailable, friendly message
+ *   6. guardrailConflict — recommendation muted during class
  */
 
 // --- Test state definitions ------------------------------------------------
@@ -32,18 +32,18 @@ export const TEST_STATES = [
   {
     key: 'happyPath',
     label: 'Happy Path',
-    description: 'Live occupancy and 8-hour projection during open hours.',
-    simulatedTime: null,         // use real time
+    description: 'Simulated crowd levels during open hours with forecast.',
+    simulatedTime: null,
     dataOnline: true,
-    liveOverride: null,          // derive from baseline
+    liveOverride: null,
     trendBias: 2,
     surge: false,
   },
   {
     key: 'offHours',
     label: 'Off-Hours / Closed',
-    description: 'Facility closed at 11:30 PM — no forecast shown.',
-    simulatedTime: { hour: 23, minute: 30, day: 2 }, // Tuesday 11:30 PM
+    description: 'Facility is closed — shows next opening time.',
+    simulatedTime: { hour: 21, minute: 0, day: 2 }, // Tuesday 9:00 PM (after close)
     dataOnline: true,
     liveOverride: 0,
     trendBias: 0,
@@ -52,18 +52,18 @@ export const TEST_STATES = [
   {
     key: 'surgeSpike',
     label: 'Surge Spike',
-    description: 'Sudden surge of check-ins — tier adjusts to High within 60 s.',
-    simulatedTime: { hour: 16, minute: 0, day: 2 }, // Tuesday 4:00 PM
+    description: 'Sudden surge — traffic level shifts to High.',
+    simulatedTime: { hour: 17, minute: 0, day: 2 }, // Tuesday 5:00 PM
     dataOnline: true,
-    liveOverride: 88, // immediately High
+    liveOverride: 88,
     trendBias: 0,
     surge: true,
   },
   {
     key: 'weekend',
-    label: 'Weekend Curve',
-    description: 'Saturday morning — historical weekend models applied.',
-    simulatedTime: { hour: 9, minute: 0, day: 6 }, // Saturday 9:00 AM
+    label: 'Weekend',
+    description: 'Saturday morning — weekend forecast pattern applied.',
+    simulatedTime: { hour: 10, minute: 0, day: 6 }, // Saturday 10:00 AM
     dataOnline: true,
     liveOverride: null,
     trendBias: 0,
@@ -71,19 +71,19 @@ export const TEST_STATES = [
   },
   {
     key: 'offlineData',
-    label: 'Offline / Missing Data',
-    description: 'Database connection drops — historical estimates only.',
+    label: 'Missing Data',
+    description: 'Forecast data is unavailable — friendly message shown.',
     simulatedTime: null,
     dataOnline: false,
     liveOverride: null,
-    trendBias: 1,
+    trendBias: 0,
     surge: false,
   },
   {
     key: 'guardrailConflict',
-    label: 'Guardrail Conflict',
+    label: 'Guardrail',
     description: 'Recommendation muted during a scheduled class block.',
-    simulatedTime: { hour: 11, minute: 0, day: 1 }, // Monday 11:00 AM (class block)
+    simulatedTime: { hour: 11, minute: 0, day: 1 }, // Monday 11:00 AM (class)
     dataOnline: true,
     liveOverride: 35,
     trendBias: 0,
@@ -95,7 +95,6 @@ function getSimulatedDate(simulatedTime) {
   if (!simulatedTime) return new Date();
   const d = new Date();
   d.setHours(simulatedTime.hour, simulatedTime.minute, 0, 0);
-  // Set the day of week if provided
   if (simulatedTime.day != null) {
     const currentDay = d.getDay();
     const diff = (simulatedTime.day - currentDay + 7) % 7;
@@ -117,15 +116,18 @@ export default function useGymCrowd() {
   const activeClass = getActiveClassBlock(simDate);
   const dataOnline = state.dataOnline;
 
-  // --- Live occupancy simulation -------------------------------------------
-  // For real-time mode (happyPath), derive live occupancy from baseline +
-  // small random walk. For surge, ramp up over 60 s. For offline, return null.
+  // Next opening time when closed
+  const nextOpening = useMemo(() => {
+    if (facilityOpen) return null;
+    return getNextOpeningTime(simDate);
+  }, [facilityOpen, simDate]);
+
+  // Internal occupancy percentage — only the tier is exposed to the UI
   const liveOccupancyPct = (() => {
     if (!dataOnline) return null;
     if (!facilityOpen) return 0;
 
     if (state.surge) {
-      // surgeProgress goes 0→1 over 60 s; occupancy ramps from baseline to override
       const baseline = getBaseline(simDate.getDay(), simDate.getHours() + simDate.getMinutes() / 60);
       const target = state.liveOverride ?? 88;
       return Math.round(baseline + (target - baseline) * surgeProgress);
@@ -135,29 +137,27 @@ export default function useGymCrowd() {
 
     const baseline = getBaseline(simDate.getDay(), simDate.getHours() + simDate.getMinutes() / 60);
     const trended = applyTrendWeighting(baseline, state.trendBias);
-    // Small random fluctuation ±5 %
     const noise = (Math.random() - 0.5) * 10;
     return Math.max(0, Math.min(100, Math.round(trended + noise)));
   })();
 
-  // --- Forecast ------------------------------------------------------------
-  const forecast = facilityOpen
-    ? forecastHours(simDate, liveOccupancyPct, state.trendBias, dataOnline)
-    : [];
+  // Forecast — returns null when data unavailable, [] when no open hours remain
+  const forecast = useMemo(() => {
+    if (!facilityOpen) return [];
+    return forecastHours(simDate, liveOccupancyPct, state.trendBias, dataOnline);
+  }, [simDate, liveOccupancyPct, state.trendBias, dataOnline, facilityOpen]);
 
-  const bestTime = facilityOpen
-    ? findBestTime(simDate, forecast)
-    : null;
+  const bestTime = useMemo(() => {
+    if (!facilityOpen || !dataOnline) return null;
+    return findBestTime(simDate, forecast);
+  }, [facilityOpen, dataOnline, simDate, forecast]);
 
-  // --- Recommendation with guardrails --------------------------------------
-  // Muted if: facility closed, data offline, during active class, or no valid slot.
   const recommendationMuted =
     !facilityOpen ||
     !dataOnline ||
     activeClass !== null ||
     bestTime === null;
 
-  // --- Tick: update `now` every 10 s for real-time states, and surge ramp ---
   useEffect(() => {
     setSurgeProgress(0);
     if (timerRef.current) clearInterval(timerRef.current);
@@ -167,7 +167,7 @@ export default function useGymCrowd() {
         setNow(new Date());
       }
       if (state.surge) {
-        setSurgeProgress((p) => Math.min(1, p + 10 / 60)); // reach 1 in 60 s
+        setSurgeProgress((p) => Math.min(1, p + 10 / 60));
       }
     }, 10000);
 
@@ -188,15 +188,13 @@ export default function useGymCrowd() {
     simDate,
     facilityOpen,
     operatingHours,
-    liveOccupancyPct,
-    liveOccupancyPeople: liveOccupancyPct != null ? occupancyToPeople(liveOccupancyPct) : null,
+    nextOpening,
     liveTier: liveOccupancyPct != null ? occupancyToTier(liveOccupancyPct) : null,
     forecast,
     bestTime,
     activeClass,
     recommendationMuted,
     dataOnline,
-    maxCapacity: FACILITY_MAX_CAPACITY,
     TIERS,
   };
 }
