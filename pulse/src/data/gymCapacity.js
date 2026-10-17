@@ -14,14 +14,17 @@
  */
 
 // --- Facility parameters --------------------------------------------------
+// 0 = Sunday … 6 = Saturday
 export const OPERATING_HOURS = {
-  weekday: { open: 7, close: 20 },   // 7:00 AM – 8:00 PM
-  weekend: { open: 9, close: 16 },   // 9:00 AM – 4:00 PM
+  weekday:   { open: 7,  close: 22 },  // Mon–Fri: 7:00 AM – 10:00 PM
+  saturday:  { open: 9,  close: 21 },  // Saturday: 9:00 AM – 9:00 PM
+  sunday:    { open: 9,  close: 16 },  // Sunday: 9:00 AM – 4:00 PM
 };
 
 export function getOperatingHours(dayOfWeek) {
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-  return isWeekend ? OPERATING_HOURS.weekend : OPERATING_HOURS.weekday;
+  if (dayOfWeek === 0) return OPERATING_HOURS.sunday;
+  if (dayOfWeek === 6) return OPERATING_HOURS.saturday;
+  return OPERATING_HOURS.weekday;
 }
 
 export function isFacilityOpen(date) {
@@ -62,38 +65,48 @@ export function getNextOpeningTime(fromDate) {
 function buildWeekdayCurve() {
   const c = new Array(24).fill(0);
   for (let h = 0; h < 24; h++) {
-    if (h < 7 || h >= 20) { c[h] = 0; continue; }
-    // Morning rush 7–9
+    if (h < 7 || h >= 22) { c[h] = 0; continue; }
     const morning = Math.exp(-Math.pow(h - 8, 2) / 2) * 45;
-    // Lunch bump 12–14
     const lunch = Math.exp(-Math.pow(h - 13, 2) / 2.5) * 50;
-    // After-class peak 16–19
-    const peak = Math.exp(-Math.pow(h - 17.5, 2) / 3) * 85;
-    // Base ambient
+    const peak = Math.exp(-Math.pow(h - 18, 2) / 3) * 85;
     const base = 20;
     c[h] = Math.min(95, Math.round(morning + lunch + peak + base));
   }
   return c;
 }
 
-function buildWeekendCurve() {
+function buildSaturdayCurve() {
+  const c = new Array(24).fill(0);
+  for (let h = 0; h < 24; h++) {
+    if (h < 9 || h >= 21) { c[h] = 0; continue; }
+    const midday = Math.exp(-Math.pow(h - 13, 2) / 4) * 60;
+    const evening = Math.exp(-Math.pow(h - 18, 2) / 3) * 45;
+    const base = 18;
+    c[h] = Math.min(80, Math.round(midday + evening + base));
+  }
+  return c;
+}
+
+function buildSundayCurve() {
   const c = new Array(24).fill(0);
   for (let h = 0; h < 24; h++) {
     if (h < 9 || h >= 16) { c[h] = 0; continue; }
-    // Midday peak 11–14
-    const midday = Math.exp(-Math.pow(h - 12, 2) / 3) * 55;
+    const midday = Math.exp(-Math.pow(h - 12, 2) / 3) * 50;
     const base = 15;
-    c[h] = Math.min(75, Math.round(midday + base));
+    c[h] = Math.min(70, Math.round(midday + base));
   }
   return c;
 }
 
 const WEEKDAY_CURVE = buildWeekdayCurve();
-const WEEKEND_CURVE = buildWeekendCurve();
+const SATURDAY_CURVE = buildSaturdayCurve();
+const SUNDAY_CURVE = buildSundayCurve();
 
 export function getBaseline(dayOfWeek, hour) {
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-  const curve = isWeekend ? WEEKEND_CURVE : WEEKDAY_CURVE;
+  let curve;
+  if (dayOfWeek === 0) curve = SUNDAY_CURVE;
+  else if (dayOfWeek === 6) curve = SATURDAY_CURVE;
+  else curve = WEEKDAY_CURVE;
   return curve[Math.round(hour) % 24] || 0;
 }
 

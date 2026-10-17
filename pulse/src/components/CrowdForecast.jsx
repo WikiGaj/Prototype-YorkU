@@ -215,7 +215,8 @@ export default function CrowdForecast() {
   const formatHour = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
-  const isWeekend = simDate.getDay() === 0 || simDate.getDay() === 6;
+  const dayOfWeek = simDate.getDay();
+  const dayLabel = dayOfWeek === 0 ? 'Sunday' : dayOfWeek === 6 ? 'Saturday' : 'Weekday';
 
   // Next opening time label for closed state
   const nextOpeningLabel = useMemo(() => {
@@ -262,7 +263,7 @@ export default function CrowdForecast() {
               The Fitness Centre is closed
             </Typography>
             <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', mb: 1 }}>
-              {isWeekend ? 'Weekend hours' : 'Weekday hours'}: {operatingHours.open}:00 AM – {operatingHours.close}:00 PM
+              {dayLabel} hours: {operatingHours.open}:00 AM – {operatingHours.close}:00 PM
             </Typography>
             {nextOpeningLabel && (
               <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary' }}>
@@ -308,7 +309,7 @@ export default function CrowdForecast() {
                     letterSpacing: '0.10em',
                   }}
                 >
-                  {isWeekend ? 'Weekend Forecast' : 'Weekday Forecast'}
+                  {dayLabel} Forecast
                 </Typography>
                 <ScheduleIcon sx={{ color: 'text.secondary', fontSize: 18 }} />
               </Box>
@@ -383,7 +384,7 @@ export default function CrowdForecast() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
         <ScheduleIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
         <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-          Mon–Fri: 7:00 AM – 8:00 PM · Sat–Sun: 9:00 AM – 4:00 PM
+          Mon–Fri: 7:00 AM – 10:00 PM · Sat: 9:00 AM – 9:00 PM · Sun: 9:00 AM – 4:00 PM
         </Typography>
       </Box>
 

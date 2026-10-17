@@ -42,7 +42,7 @@ export const TEST_STATES = [
     key: 'offHours',
     label: 'Off-Hours / Closed',
     description: 'Facility is closed — shows next opening time.',
-    simulatedTime: { hour: 21, minute: 0, day: 2 }, // Tuesday 9:00 PM (after close)
+    simulatedTime: { hour: 22, minute: 30, day: 2 }, // Tuesday 10:30 PM (after close)
     dataOnline: true,
     liveOverride: 0,
     trendBias: 0,
