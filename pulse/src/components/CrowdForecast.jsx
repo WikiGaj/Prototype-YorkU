@@ -20,7 +20,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import SchoolIcon from '@mui/icons-material/School';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import { tokens } from '../theme';
 import useGymCrowd, { TEST_STATES } from '../hooks/useGymCrowd';
@@ -200,7 +199,6 @@ export default function CrowdForecast() {
     liveTier,
     forecast,
     bestTime,
-    activeClass,
     recommendationMuted,
     dataOnline,
   } = crowd;
@@ -210,10 +208,9 @@ export default function CrowdForecast() {
   const muteReason = useMemo(() => {
     if (!facilityOpen) return 'The Fitness Centre is closed.';
     if (!dataOnline) return 'Forecast information is currently unavailable. Please try again later.';
-    if (activeClass) return `You have a class now: ${activeClass.name} (${activeClass.start}–${activeClass.end}).`;
     if (bestTime === null) return 'No suitable time slot found in the remaining open hours.';
     return '';
-  }, [facilityOpen, dataOnline, activeClass, bestTime]);
+  }, [facilityOpen, dataOnline, bestTime]);
 
   const formatHour = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   const formatDate = (d) => d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
@@ -294,21 +291,6 @@ export default function CrowdForecast() {
               </Typography>
 
               <TrafficBadge tier={liveTier} />
-
-              {/* Active class guardrail indicator */}
-              {activeClass && (
-                <Box sx={{
-                  display: 'flex', alignItems: 'center', gap: 1,
-                  mt: 2, px: 1.5, py: 1, borderRadius: 1.5,
-                  backgroundColor: 'rgba(227,24,55,0.08)',
-                  border: '1px solid rgba(227,24,55,0.20)',
-                }}>
-                  <SchoolIcon sx={{ color: '#E31837', fontSize: 18 }} />
-                  <Typography sx={{ fontSize: '0.78rem', color: 'text.secondary' }}>
-                    In class now: <strong style={{ color: 'text.primary' }}>{activeClass.name}</strong> ({activeClass.start}–{activeClass.end})
-                  </Typography>
-                </Box>
-              )}
             </CardContent>
           </Card>
 

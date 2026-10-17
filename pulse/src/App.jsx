@@ -109,7 +109,7 @@ export default function App() {
             editEntry={editEntry}
             onCancel={editEntry ? handleCancelEdit : undefined}
           />
-        )}}
+        )}
         {view === 3 && (
           <History
             entries={entries}

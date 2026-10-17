@@ -55,40 +55,6 @@ export function getNextOpeningTime(fromDate) {
   return null;
 }
 
-// --- Sample class timetable (guardrail) -----------------------------------
-// day: 1 = Monday … 5 = Friday.  Times are 24 h strings "HH:MM".
-export const SAMPLE_CLASS_SCHEDULE = [
-  { day: 1, start: '10:30', end: '12:00', name: 'Introduction to Psychology' },
-  { day: 1, start: '13:00', end: '14:30', name: 'Calculus I' },
-  { day: 2, start: '09:00', end: '10:30', name: 'English Composition' },
-  { day: 2, start: '14:00', end: '15:30', name: 'Biology Lab' },
-  { day: 3, start: '10:30', end: '12:00', name: 'Introduction to Psychology' },
-  { day: 3, start: '13:00', end: '14:30', name: 'Calculus I' },
-  { day: 4, start: '09:00', end: '10:30', name: 'English Composition' },
-  { day: 4, start: '14:00', end: '15:30', name: 'Biology Lab' },
-  { day: 5, start: '10:30', end: '12:00', name: 'Introduction to Psychology' },
-];
-
-function parseTimeStr(s) {
-  const [h, m] = s.split(':').map(Number);
-  return h + m / 60;
-}
-
-export function getActiveClassBlock(date) {
-  const day = date.getDay();
-  const hour = date.getHours() + date.getMinutes() / 60;
-  return (
-    SAMPLE_CLASS_SCHEDULE.find((c) => {
-      if (c.day !== day) return false;
-      return hour >= parseTimeStr(c.start) && hour < parseTimeStr(c.end);
-    }) || null
-  );
-}
-
-export function isDuringClass(date) {
-  return getActiveClassBlock(date) !== null;
-}
-
 // --- Historical baseline curves -------------------------------------------
 // Internal occupancy percentage (0–100) by hour.
 // Only the qualitative tier is shown to users.
@@ -212,18 +178,13 @@ export function forecastHours(nowDate, livePct, trendBias = 0, dataOnline = true
 
 /**
  * Find the best time to go — the hour with the lowest predicted traffic
- * that is within operating hours AND not during a scheduled class block.
+ * that is within operating hours.
  * Returns null if no valid slot exists.
  */
 export function findBestTime(nowDate, forecast) {
   if (!forecast || forecast.length === 0) return null;
 
-  const candidates = forecast.filter((f) => {
-    const targetDate = new Date(nowDate);
-    targetDate.setHours(nowDate.getHours() + f.offset, nowDate.getMinutes(), 0, 0);
-    if (isDuringClass(targetDate)) return false;
-    return true;
-  });
+  const candidates = forecast;
 
   if (candidates.length === 0) return null;
 

@@ -7,7 +7,6 @@ import {
   occupancyToTier,
   forecastHours,
   findBestTime,
-  getActiveClassBlock,
   getNextOpeningTime,
   TIERS,
 } from '../data/gymCapacity';
@@ -24,7 +23,7 @@ import {
  *   3. surgeSpike      — sudden surge, tier flips to High
  *   4. weekend         — Saturday, weekend pattern
  *   5. offlineData     — data unavailable, friendly message
- *   6. guardrailConflict — recommendation muted during class
+
  */
 
 // --- Test state definitions ------------------------------------------------
@@ -79,16 +78,6 @@ export const TEST_STATES = [
     trendBias: 0,
     surge: false,
   },
-  {
-    key: 'guardrailConflict',
-    label: 'Guardrail',
-    description: 'Recommendation muted during a scheduled class block.',
-    simulatedTime: { hour: 11, minute: 0, day: 1 }, // Monday 11:00 AM (class)
-    dataOnline: true,
-    liveOverride: 35,
-    trendBias: 0,
-    surge: false,
-  },
 ];
 
 function getSimulatedDate(simulatedTime) {
@@ -113,7 +102,6 @@ export default function useGymCrowd() {
   const simDate = getSimulatedDate(state.simulatedTime);
   const facilityOpen = isFacilityOpen(simDate);
   const operatingHours = getOperatingHours(simDate.getDay());
-  const activeClass = getActiveClassBlock(simDate);
   const dataOnline = state.dataOnline;
 
   // Next opening time when closed
@@ -155,7 +143,6 @@ export default function useGymCrowd() {
   const recommendationMuted =
     !facilityOpen ||
     !dataOnline ||
-    activeClass !== null ||
     bestTime === null;
 
   useEffect(() => {
@@ -192,7 +179,6 @@ export default function useGymCrowd() {
     liveTier: liveOccupancyPct != null ? occupancyToTier(liveOccupancyPct) : null,
     forecast,
     bestTime,
-    activeClass,
     recommendationMuted,
     dataOnline,
     TIERS,
