@@ -35,7 +35,7 @@ jobs:
         run: npm ci
 
       - name: Build (Pulse — the default site at /pulse/)
-        run: npm run build
+        run: npm run build:github
 
       - name: Build York U Fitness class variant (/pulse/yorku/)
         run: npm run build:yorku

@@ -1,0 +1,12 @@
+{
+  "name": "pulse-root",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm run dev --prefix pulse",
+    "build": "npm run build --prefix pulse",
+    "build:github": "npm run build:github --prefix pulse",
+    "build:yorku": "npm run build:yorku --prefix pulse",
+    "install": "npm install --prefix pulse"
+  }
+}
